@@ -1,0 +1,99 @@
+
+# links to factors
+FACTORS:
+  BASE5:
+    LINK: 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_5_Factors_2x3_CSV.zip'
+    START: ',Mkt-RF,SMB,HML,RMW,CMA,RF'
+    END: 'Annual Factors: January-December'
+    POST_PROCESS: 0
+  MOMENTUM:
+    LINK: 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Momentum_Factor_CSV.zip'
+    START: ',Mom'
+    END: 'Annual Factors:'
+    POST_PROCESS: 0
+  ACCRUAL:
+    LINK: 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/Portfolios_Formed_on_AC_CSV.zip'
+    START: ',Lo 20,Qnt 2,Qnt 3,Qnt 4,Hi 20,Lo 10,Dec 2,Dec 3,Dec 4,Dec 5,Dec 6,Dec 7,Dec 8,Dec 9,Hi 10'
+    END: 'Equal Weighted Returns -- Monthly'
+    POST_PROCESS: 1
+    HIGH_VAL: 'Lo20'
+    LOW_VAL: 'Hi20'
+  VARIANCE:
+    LINK: 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/Portfolios_Formed_on_VAR_CSV.zip'
+    START: ',Lo 20,Qnt 2,Qnt 3,Qnt 4,Hi 20,Lo 10,Dec 2,Dec 3,Dec 4,Dec 5,Dec 6,Dec 7,Dec 8,Dec 9,Hi 10'
+    END: 'Equal Weighted Returns -- Monthly'
+    POST_PROCESS: 1
+    HIGH_VAL: 'Lo20'
+    LOW_VAL: 'Hi20'
+  NET_ISSUES:
+    LINK: 'http://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/Portfolios_Formed_on_NI_CSV.zip'
+    START: ',< 0 ,ZERO,Lo 20,Qnt 2,Qnt 3,Qnt 4,Hi 20,Lo 10,Dec 2,Dec 3,Dec 4,Dec 5,Dec 6,Dec 7,Dec 8,Dec 9,Hi 10'
+    END: 'Equal Weighted Returns -- Monthly'
+    POST_PROCESS: 1
+    HIGH_VAL: '<0'
+    LOW_VAL: 'Hi20'
+
+# etf db and filters
+ETF_DB:
+  URL: 'http://www.etf.com/etf-finder-funds-api//-aum/0/10000/1'
+  FILTER_LAMBDA: "lambda x: (x['classification']['geography'] in {GEO}) & (x['classification']['category'] in {CATEGORY}) & ((x['fundBasics']['spreadPct']['value'] or 1)<{LIQUIDITY}) & (x['analysis']['letterGrade'] in {GRADE})"
+  FILTERS:
+    GEO: "['U.S.']"
+    CATEGORY: "['Size and Style', 'High Dividend Yield', 'Broad Market', 'Asset Allocation', 'Corporate', 'Absolute Returns']"
+    LIQUIDITY: 0.01
+    GRADE: "['A','B','C']"
+  FIELDS:
+    TICKER: "lambda x: x['ticker']"
+    FUND: "lambda x: x['fund']"
+    AUM: "lambda x: x['fundBasics']['aum']['value']"
+    ISSUER: "lambda x: x['fundBasics']['issuer'] if len(re.findall(r'>(.*)<', x['fundBasics']['issuer'])) == 0 else re.findall(r'>(.*)<', x['fundBasics']['issuer'])"
+    SEGMENT: "lambda x: x['fundBasics']['segment']"
+    EXPENSE_RATIO: "lambda x: x['fundBasics']['expenseRatio']['value']"
+    RETURN_1YR: "lambda x: x['performance']['priceTr1Yr']['value']"
+    RETURN_3YR: "lambda x: x['performance']['priceTr3YrAnnualized']['value']"
+    RETURN_5YR: "lambda x: x['performance']['priceTr5YrAnnualized']['value']"
+    RETURN_10YR: "lambda x: x['performance']['priceTr10YrAnnualized']['value']"
+
+# price lookup
+PRICE_LOOKUP: 'http://chart.finance.yahoo.com/table.csv?s={STOCK}&a={START_MONTH}&b={START_DAY}&c={START_YEAR}&d={END_MONTH}&e={END_DAY}&f={END_YEAR}&g=m&ignore=.csv'
+
+# regression variables
+REGRESSION:
+  MIN_N: 60
+  FORMULA: "Return ~ Mkt.RF + SMB + HML + RMW + CMA + Mom + VARIANCE + NET_ISSUES + ACCRUAL"
+  USE_AIC: 1
+  UNCORRELATED_RESIDUALS: 0
+
+# factor names
+FACTORS_NAMES:
+  Alpha: 'Alpha'
+  Mkt.RF: 'Beta'
+  SMB: 'Size'
+  HML: 'Value'
+  RMW: 'Profitability'
+  CMA: 'Investment'
+  Mom: 'Momentum'
+  VARIANCE: 'Volatility'
+  NET_ISSUES: 'Share Issues'
+  ACCRUAL: 'Accruals'
+
+# clustering variables
+CLUSTERING:
+  N_CLUSTER: 20
+  OUTLIER_SD: 3
+
+# optimization variables
+OPTIMIZATION:
+  USE_CLUSTERING: 0
+  FACTOR_TILT_MIN: 
+    SMB: 0.5
+    HML: 0.5
+    RMW: 0.5
+    CMA: 0.5
+    Mom: 0.5
+  MIN_WEIGHT: 0.025
+  MAX_WEIGHT: 0.5
+  TARGET_RETURNS: [6, 8, 10, 12]
+
+# benchmarks
+BENCHMARKS: ['SPY', 'MDY']
