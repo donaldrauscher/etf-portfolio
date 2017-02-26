@@ -46,7 +46,10 @@ if (length(setdiff(var2, names(tilts)))>0){
 tilts[,var2][is.na(tilts[,var2])] <- 0
 
 # calculate actual return and variance
-stats <- returns2 %>% group_by(Ticker) %>% arrange(Month) %>% summarise(Actual_Return = 100*(prod(1+Return/100)^(12/n())-1), Actual_SD = sqrt(12)*sd(Return)) %>% 
+stats <- returns2 %>% 
+  group_by(Ticker) %>% arrange(Month) %>% 
+  mutate(Cumulative_Return = cumprod(1+Return/100)) %>% mutate(Draw_Down = 1-Cumulative_Return/cummax(Cumulative_Return)) %>%
+  summarise(Actual_Return = 100*(prod(1+Return/100)^(12/n())-1), Actual_SD = sqrt(12)*sd(Return), Max_Draw_Down = max(Draw_Down)) %>% 
   mutate(Actual_Var = Actual_SD^2, Actual_Sharpe = Actual_Return / Actual_SD)
 
 # calculate expected return and variance

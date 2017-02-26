@@ -38,8 +38,8 @@ plot2 <- portfolio_summary %>%
 
 # create output table
 plot3 <- rbind(
-  etf_tilts %>% filter(Ticker %in% meta$BENCHMARKS) %>% select(Ticker, Expected_Return, Expected_Var, Expected_SD, Expected_Sharpe, Actual_Return, Actual_SD, Actual_Var, Actual_Sharpe) %>% rename(Portfolio=Ticker),
-  portfolio_summary%>% select(Portfolio, Expected_Return, Expected_Var, Expected_SD, Expected_Sharpe, Actual_Return, Actual_SD, Actual_Var, Actual_Sharpe)
+  etf_tilts %>% filter(Ticker %in% meta$BENCHMARKS) %>% select(Ticker, Expected_Return, Expected_Var, Expected_SD, Expected_Sharpe, Actual_Return, Actual_SD, Actual_Var, Actual_Sharpe, Max_Draw_Down) %>% rename(Portfolio=Ticker),
+  portfolio_summary%>% select(Portfolio, Expected_Return, Expected_Var, Expected_SD, Expected_Sharpe, Actual_Return, Actual_SD, Actual_Var, Actual_Sharpe, Max_Draw_Down)
 )
 
 # save

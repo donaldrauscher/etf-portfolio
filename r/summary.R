@@ -27,7 +27,9 @@ portfolios2 <- portfolios %>%
 
 portfolios3 <- returns2 %>% 
   rename(Portfolio = Ticker) %>%
-  group_by(Portfolio) %>% arrange(Month) %>% summarise(Actual_Return = 100*(prod(1+Return/100)^(12/n())-1), Actual_SD = sqrt(12)*sd(Return)) %>% 
+  group_by(Portfolio) %>% arrange(Month) %>% 
+  mutate(Cumulative_Return = cumprod(1+Return/100)) %>% mutate(Draw_Down = 1-Cumulative_Return/cummax(Cumulative_Return)) %>%
+  summarise(Actual_Return = 100*(prod(1+Return/100)^(12/n())-1), Actual_SD = sqrt(12)*sd(Return), Max_Draw_Down = max(Draw_Down)) %>% 
   mutate(Actual_Var = Actual_SD^2, Actual_Sharpe = Actual_Return / Actual_SD)
 
 summary <- portfolios2 %>% inner_join(portfolios3, by = c("Portfolio"))
