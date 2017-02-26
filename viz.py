@@ -13,12 +13,12 @@ class RiskVsReturnScatter(RTask):
     r_script = 'r/viz/risk_vs_return.R'
 
     def requires(self):
-        return [GetETFDbCSV(dt=self.dt), CalcETFTilts(dt=self.dt, use_aic=META['REGRESSION']['USE_AIC']), CalcETFPortfolioSummary(dt=self.dt)]
+        return [GetETFDbCSV(dt=self.dt), CalcETFTilts(dt=self.dt), CalcETFPortfolioSummary(dt=self.dt)]
 
     def input(self):
         return {
             'etf-db' : GetETFDbCSV(dt=self.dt).output(),
-            'etf-tilts' : CalcETFTilts(dt=self.dt, use_aic=META['REGRESSION']['USE_AIC']).output(),
+            'etf-tilts' : CalcETFTilts(dt=self.dt).output(),
             'portfolio-summary' : CalcETFPortfolioSummary(dt=self.dt).output()['summary-output']
         }
 
@@ -55,7 +55,7 @@ class TiltsRadarPlot(RTask):
 
     def requires(self):
         return {
-            'etf-tilts': CalcETFTilts(dt=self.dt, use_aic=0),
+            'etf-tilts': CalcETFTilts(dt=self.dt),
             'portfolio-tilts': CalcETFPortfolioTilts(dt=self.dt)
         }
 

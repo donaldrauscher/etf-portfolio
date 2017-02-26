@@ -270,21 +270,20 @@ class AllETFReturns(RTask):
 class CalcETFTilts(RTask):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    use_aic = luigi.IntParameter()
     r_script = 'r/tilts.R'
 
     @property
     def extra_params(self):
-        return {'use-aic':self.use_aic}
+        return {'use-aic':META['REGRESSION']['USE_AIC']}
 
     def requires(self):
         return {'returns':AllETFReturns(dt=self.dt), 'factors':GetAllFactorData(dt=self.dt)}
 
     def output(self):
-        return luigi.LocalTarget('data/%s/etf_tilts_%s.csv' % (self.dt, 'aic' if self.use_aic == 1 else 'noaic'))
+        return luigi.LocalTarget('data/%s/etf_tilts.csv' % (self.dt))
 
 
-# create the covariance matrix; requires both tilts with and without AIC but only uses one
+# create the covariance matrix
 class CreateETFCovarMatrix(RTask):
 
     dt = luigi.DateParameter(default=datetime.date.today())
@@ -293,8 +292,7 @@ class CreateETFCovarMatrix(RTask):
     def requires(self):
         return {
             'returns':AllETFReturns(dt=self.dt),
-            'tilts':CalcETFTilts(dt=self.dt, use_aic=META['REGRESSION']['USE_AIC']),
-            'tilts2':CalcETFTilts(dt=self.dt, use_aic=1-META['REGRESSION']['USE_AIC']),
+            'tilts':CalcETFTilts(dt=self.dt),
             'factors':GetAllFactorData(dt=self.dt)
         }
 
@@ -309,7 +307,7 @@ class ClusterETF(RTask):
     r_script = 'r/cluster.R'
 
     def requires(self):
-        return {'tilts':CalcETFTilts(dt=self.dt, use_aic=META['REGRESSION']['USE_AIC'])}
+        return {'tilts':CalcETFTilts(dt=self.dt)}
 
     def output(self):
         return luigi.LocalTarget('data/%s/etf_cluster.csv' % (self.dt))
@@ -374,7 +372,7 @@ class CalcETFPortfolioTilts(RTask):
 
     @property
     def extra_params(self):
-        return {'use-aic' : 0}
+        return {'use-aic' : META['REGRESSION']['USE_AIC']}
 
     def requires(self):
         return [CalcETFPortfolioSummary(dt=self.dt), GetAllFactorData(dt=self.dt)]
