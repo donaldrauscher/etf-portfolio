@@ -99,8 +99,7 @@ class GetETFDb(luigi.Task):
         return luigi.LocalTarget('data/%s/etf.db' % (self.dt))
 
     def fetch(self):
-        url = META['ETF_DB']['URL']
-        response = requests.get(url)
+        response = requests.get(META['ETF_DB']['URL'], headers = META['ETF_DB']['HEADERS'])
         self.data = json.loads(response.text)
 
     def run(self):

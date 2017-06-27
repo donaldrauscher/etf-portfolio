@@ -36,6 +36,10 @@ FACTORS:
 # etf db and filters
 ETF_DB:
   URL: 'http://www.etf.com/etf-finder-funds-api//-aum/0/10000/1'
+  HEADERS:
+    Accept: '*/*'
+    Referer: 'http://www.etf.com/etfanalytics/etf-finder'
+    X-Requested-With: 'XMLHttpRequest'
   FILTER_LAMBDA: "lambda x: (x['classification']['geography'] in {GEO}) & (x['classification']['category'] in {CATEGORY}) & ((x['fundBasics']['spreadPct']['value'] or 1)<{LIQUIDITY}) & (x['analysis']['letterGrade'] in {GRADE})"
   FILTERS:
     GEO: "['U.S.']"
@@ -85,7 +89,7 @@ CLUSTERING:
 # optimization variables
 OPTIMIZATION:
   USE_CLUSTERING: 0
-  FACTOR_TILT_MIN: 
+  FACTOR_TILT_MIN:
     SMB: 0.5
     HML: 0.5
     RMW: 0.5
