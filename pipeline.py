@@ -202,10 +202,12 @@ class GetETFPrices(sqla.CopyToTable):
     def end(self):
         return int((datetime.date(self.dt.year,self.dt.month-1,1) - datetime.date(1970,1,1)).total_seconds())
 
+    def remove_null(self, row):
+        return (None if v == 'null' else v for v in row)
+
     def fetch(self):
         params = {'TICKER':self.ticker, 'START':self.start, 'END':self.end, 'CRUMB':self.yahoo_cookie['crumb']}
         url = META['PRICE_LOOKUP'].format(**params)
-        self._logger.info(url)
 
         response = requests.get(url, headers = self.yahoo_cookie)
         if response.status_code == 404:
@@ -219,7 +221,7 @@ class GetETFPrices(sqla.CopyToTable):
 
     def rows(self):
         for row in self.fetch():
-            yield row
+            yield self.remove_null(row)
 
 
 # grab all ETF prices
