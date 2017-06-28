@@ -41,9 +41,13 @@ optimize <- function(x, min_weight=0, max_weight=1, constraints=list()){
   return(soln)
 }
 
+# flag for outliers
+is_outlier <- apply(abs(tilts[,names(meta$FACTORS_NAMES)]), 1, function(x) as.integer(sum(ifelse(x >= meta$OPTIMIZATION$COEFF_OUTLIER_CUTOFF, 1, 0))>0))
+
 # first optimization
-optimization1 <- optimize(x=tilts$Ticker, 0, meta$OPTIMIZATION$MAX_WEIGHT, meta$OPTIMIZATION$FACTOR_TILT_MIN)
-tilts$Weight <- optimization1$solution
+optimization1 <- optimize(x=tilts$Ticker[is_outlier == 0], 0, meta$OPTIMIZATION$MAX_WEIGHT, meta$OPTIMIZATION$FACTOR_TILT_MIN)
+tilts$Weight <- 0
+tilts$Weight[is_outlier == 0] <- optimization1$solution
 
 # select variables for second optimization
 if (meta$OPTIMIZATION$USE_CLUSTERING){
