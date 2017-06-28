@@ -143,13 +143,30 @@ class GetETFDbCSV(luigi.Task):
         self.extract() # stores in data_df
         self.data_df.to_csv(self.output().path, index=False)
 
+# get yahoo cookie for fetching prices
+class GetYahooCookie(luigi.Task):
 
-# grab database of ETFs
+    _logger = logging.getLogger('luigi-interface')
+    dt = luigi.DateParameter(default=datetime.date.today())
+
+    def output(self):
+        return luigi.LocalTarget('data/%s/yahoo_cookie.json' % (self.dt))
+
+    def run(self):
+        yahoo = requests.get("https://finance.yahoo.com/quote/AAPL/history")
+        cookie = yahoo.headers['Set-Cookie']
+        crumb = re.search('"CrumbStore":{"crumb":"(?P<crumb>[^"]+)"}', yahoo.text).group('crumb')
+        outdata = {'cookie':cookie, 'crumb':crumb}
+        with open(self.output().path, 'w') as outfile:
+            json.dump(outdata, outfile)
+
+# grab prices for specific ETFs
 class GetETFPrices(sqla.CopyToTable):
 
     _logger = logging.getLogger('luigi-interface')
     dt = luigi.DateParameter(default=datetime.date.today())
     ticker = luigi.Parameter()
+    _yahoo_cookie = None
 
     columns = [
         (["Date", String(10)], {}),
@@ -157,25 +174,40 @@ class GetETFPrices(sqla.CopyToTable):
         (["High", Float(10)], {}),
         (["Low", Float(10)], {}),
         (["Close", Float(10)], {}),
-        (["Volume", Float(0)], {}),
         (["Adj Close", Float(10)], {}),
+        (["Volume", Float(0)], {}),
         (["Ticker", String(10)], {})
     ]
     table = "prices"
+
+    def requires(self):
+        return GetYahooCookie(dt=self.dt)
 
     @property
     def connection_string(self):
         return 'sqlite:///data/%s/etf_prices.db' % (self.dt)
 
-    def fetch(self):
-        params = {
-            'STOCK':self.ticker,
-            'START_DAY':1, 'START_MONTH':self.dt.month-1, 'START_YEAR':self.dt.year-5,
-            'END_DAY':self.dt.day, 'END_MONTH':self.dt.month-1, 'END_YEAR':self.dt.year
-        }
-        url = META['PRICE_LOOKUP'].format(**params)
+    @property
+    def yahoo_cookie(self):
+        if not self._yahoo_cookie:
+            with open(self.input().path,'r') as f:
+                self._yahoo_cookie = json.load(f)
+        return self._yahoo_cookie
 
-        response = requests.get(url)
+    @property
+    def start(self):
+        return int((datetime.date(self.dt.year-5,self.dt.month-1,1) - datetime.date(1970,1,1)).total_seconds())
+
+    @property
+    def end(self):
+        return int((datetime.date(self.dt.year,self.dt.month-1,1) - datetime.date(1970,1,1)).total_seconds())
+
+    def fetch(self):
+        params = {'TICKER':self.ticker, 'START':self.start, 'END':self.end, 'CRUMB':self.yahoo_cookie['crumb']}
+        url = META['PRICE_LOOKUP'].format(**params)
+        self._logger.info(url)
+
+        response = requests.get(url, headers = self.yahoo_cookie)
         if response.status_code == 404:
             return []
         if response.status_code != 200:
@@ -200,19 +232,19 @@ class GetAllETFPrices(luigi.Task):
     @property
     def tickers(self):
         if not self._tickers:
-            etf_list = pd.read_csv(self.input().path)
+            etf_list = pd.read_csv(self.input()['etf_db'].path)
             self._tickers = list(etf_list.TICKER)
         return self._tickers
 
     def requires(self):
-        return GetETFDbCSV(dt=self.dt)
+        return {'etf_db':GetETFDbCSV(dt=self.dt), 'yahoo_cookie':GetYahooCookie(dt=self.dt)}
 
     def output(self):
         return luigi.LocalTarget('data/%s/etf_prices.db' % (self.dt))
 
     # need to overwrite 'complete' method to check dependency first!
     def complete(self):
-        if not self.requires().complete():
+        if not self.requires()['etf_db'].complete():
             return False
         tasks = [GetETFPrices(dt=self.dt, ticker=ticker) for ticker in self.tickers]
         return all(t.complete() for t in tasks)

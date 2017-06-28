@@ -59,7 +59,7 @@ ETF_DB:
     RETURN_10YR: "lambda x: x['performance']['priceTr10YrAnnualized']['value']"
 
 # price lookup
-PRICE_LOOKUP: 'http://chart.finance.yahoo.com/table.csv?s={STOCK}&a={START_MONTH}&b={START_DAY}&c={START_YEAR}&d={END_MONTH}&e={END_DAY}&f={END_YEAR}&g=m&ignore=.csv'
+PRICE_LOOKUP: 'https://query1.finance.yahoo.com/v7/finance/download/{TICKER}?period1={START}&period2={END}&interval=1mo&events=history&crumb={CRUMB}'
 
 # regression variables
 REGRESSION:
