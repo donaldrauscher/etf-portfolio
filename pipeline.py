@@ -279,7 +279,7 @@ class GetAllETFPricesCSV(luigi.Task):
                 SELECT ticker, COUNT(*) AS `n`
                 FROM prices GROUP BY ticker HAVING n >= {N}
             ) AS x ON prices.ticker = x.ticker
-        """.format(N = META['REGRESSION']['MIN_N']+1)
+        """.format(N = META['REGRESSION']['MIN_N'])
 
     def run(self):
         df = pd.read_sql(self.query, self.connection_string)
