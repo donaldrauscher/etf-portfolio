@@ -4,6 +4,7 @@ from sqlalchemy import String, Float
 import pandas as pd
 from base import RTask
 from returns import CalcReturns
+from tilts import CalcTilts
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
@@ -300,14 +301,10 @@ class AllETFReturns(CalcReturns):
 
 
 # calculate the tilts for each ETF
-class CalcETFTilts(RTask):
+class CalcETFTilts(CalcTilts):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/tilts.R'
-
-    @property
-    def extra_params(self):
-        return {'use-aic':META['REGRESSION']['USE_AIC']}
+    meta = META['REGRESSION']
 
     def requires(self):
         return {'returns':AllETFReturns(dt=self.dt), 'factors':GetAllFactorData(dt=self.dt)}
@@ -398,14 +395,10 @@ class CalcETFPortfolioSummary(RTask):
 
 
 # calculate overall tilts
-class CalcETFPortfolioTilts(RTask):
+class CalcETFPortfolioTilts(CalcTilts):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/tilts.R'
-
-    @property
-    def extra_params(self):
-        return {'use-aic' : META['REGRESSION']['USE_AIC']}
+    meta = META['REGRESSION']
 
     def requires(self):
         return [CalcETFPortfolioSummary(dt=self.dt), GetAllFactorData(dt=self.dt)]

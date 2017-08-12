@@ -64,8 +64,9 @@ PRICE_LOOKUP: 'https://query1.finance.yahoo.com/v7/finance/download/{TICKER}?per
 # regression variables
 REGRESSION:
   MIN_N: 60
-  FORMULA: "Return ~ Mkt.RF + SMB + HML + RMW + CMA + Mom + VARIANCE + NET_ISSUES + ACCRUAL"
-  USE_AIC: 1
+  YVAR: 'Return'
+  XVAR: ['Mkt-RF', 'SMB', 'HML', 'RMW', 'CMA', 'Mom', 'VARIANCE', 'NET_ISSUES', 'ACCRUAL']
+  ALPHA: 0.1
   UNCORRELATED_RESIDUALS: 0
 
 # factor names
