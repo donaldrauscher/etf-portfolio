@@ -3,6 +3,7 @@ from luigi.contrib import sqla
 from sqlalchemy import String, Float
 import pandas as pd
 from base import RTask
+from returns import CalcReturns
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
@@ -287,13 +288,12 @@ class GetAllETFPricesCSV(luigi.Task):
 
 
 # roll up and calculate monthly returns
-class AllETFReturns(RTask):
+class AllETFReturns(CalcReturns):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/returns.R'
 
     def requires(self):
-        return {'prices':GetAllETFPricesCSV(dt=self.dt)}
+        return GetAllETFPricesCSV(dt=self.dt)
 
     def output(self):
         return luigi.LocalTarget('data/%s/etf_returns.csv' % (self.dt))
