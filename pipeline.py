@@ -210,7 +210,7 @@ class GetETFPrices(sqla.CopyToTable):
         url = META['PRICE_LOOKUP'].format(**params)
 
         response = requests.get(url, headers = self.yahoo_cookie)
-        if response.status_code == 404:
+        if response.status_code in [404,400]:
             return []
         if response.status_code != 200:
             response.raise_for_status()
