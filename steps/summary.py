@@ -48,6 +48,9 @@ class CalcSummary(luigi.Task):
         portfolios3 = portfolios3.agg(aggegations)
         portfolios3.columns = ['Portfolio'] + [x[1] for x in portfolios3.columns.ravel()[1:]]
 
+        portfolios3['Actual_Var'] = portfolios3.Actual_SD**2
+        portfolios3['Actual_Sharpe'] = portfolios3.Actual_Return / portfolios3.Actual_SD
+
         summary = portfolios2.merge(portfolios3, how="inner", on=["Portfolio"])
 
         # export

@@ -1,5 +1,4 @@
-import luigi, datetime, yaml
-from base import RTask
+import luigi, datetime, yaml, math
 from pipeline import *
 
 # pull in meta data
@@ -7,10 +6,9 @@ with open('meta.yaml', 'rb') as f:
     META = yaml.load(f)
 
 
-class RiskVsReturnScatter(RTask):
+class RiskVsReturnScatter(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/viz/risk_vs_return.R'
 
     def requires(self):
         return [GetETFDbCSV(dt=self.dt), CalcETFTilts(dt=self.dt), CalcETFPortfolioSummary(dt=self.dt)]
@@ -28,6 +26,38 @@ class RiskVsReturnScatter(RTask):
             'output2':luigi.LocalTarget('data/%s/viz/viz1_2.csv' % (self.dt)),
             'output3':luigi.LocalTarget('data/%s/viz/viz1_3.csv' % (self.dt))
         }
+
+    def run(self):
+        # bring in inputs
+        etf_db = pd.read_csv(self.input()['etf-db'].path)
+        etf_tilts = pd.read_csv(self.input()['etf-tilts'].path)
+        portfolio_summary = pd.read_csv(self.input()['portfolio-summary'].path)
+
+        # format data for plot
+        plot1 = etf_tilts.merge(etf_db, how = "inner", left_on = ['Ticker'], right_on = ['TICKER'])
+        plot1['Size'] = plot1.AUM.apply(lambda x: math.log(1 + x/1000000000))
+        plot1['Label'] = plot1.apply(lambda x: "Ticker: %s<br>Fund: %s<br>AUM: %1.1fB<br>E[Return]: %1.1f%%<br>SD(Return): %1.1f%%" % (x['Ticker'], x['FUND'], x['AUM']/1000000000, x['Expected_Return'], x['Expected_SD']), axis=1)
+        plot1.rename(columns = {'Expected_SD':'X', 'Expected_Return':'Y', 'Expected_Sharpe':'Color'}, inplace = True)
+        plot1 = plot1[['X','Y','Size','Label','Color']]
+        plot1.sort_values(by = ['Size'], ascending = False, inplace = True)
+        plot1['Opacity'] = np.linspace(0.3, 1, plot1.shape[0])
+        area_scaler = 2 / plot1.Size.quantile(0.25)
+        plot1['Size'] = plot1.Size * area_scaler
+
+        plot2 = portfolio_summary.copy()
+        plot2['Label'] = plot2.apply(lambda x: "Fund: %s<br>E[Return]: %1.1f%%<br>SD(Return): %1.1f%%" % (x['Portfolio'], x['Expected_Return'], x['Expected_SD']), axis=1)
+        plot2.rename(columns = {'Expected_SD':'X', 'Expected_Return':'Y', 'Expected_Sharpe':'Color'}, inplace = True)
+        plot2 = plot2[['X','Y','Label','Color']]
+        plot2.sort_values(by = ['X'], ascending = True, inplace = True)
+
+        plot3_1 = etf_tilts.loc[etf_tilts.Ticker.isin(META['BENCHMARKS']), ['Ticker', 'Expected_Return', 'Expected_Var', 'Expected_SD', 'Expected_Sharpe', 'Actual_Return', 'Actual_SD', 'Actual_Var', 'Actual_Sharpe', 'Max_Draw_Down']].rename(columns={'Ticker':'Portfolio'})
+        plot3_2 = portfolio_summary[['Portfolio', 'Expected_Return', 'Expected_Var', 'Expected_SD', 'Expected_Sharpe', 'Actual_Return', 'Actual_SD', 'Actual_Var', 'Actual_Sharpe', 'Max_Draw_Down']]
+        plot3 = pd.concat([plot3_1, plot3_2], axis=0)
+
+        # export
+        plot1.to_csv(self.output()['output1'].path, index = False)
+        plot2.to_csv(self.output()['output2'].path, index = False)
+        plot3.to_csv(self.output()['output3'].path, index = False)
 
 
 class CumulativeReturnPlot(luigi.Task):
