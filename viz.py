@@ -48,10 +48,9 @@ class CumulativeReturnPlot(RTask):
         return luigi.LocalTarget('data/%s/viz/viz2.csv' % (self.dt))
 
 
-class TiltsRadarPlot(RTask):
+class TiltsRadarPlot(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/viz/tilts.R'
 
     def requires(self):
         return {
@@ -61,6 +60,22 @@ class TiltsRadarPlot(RTask):
 
     def output(self):
         return luigi.LocalTarget('data/%s/viz/viz4.csv' % (self.dt))
+
+    def run(self):
+        # bring in inputs
+        etf_tilts = pd.read_csv(self.input()['etf-tilts'].path)
+        portfolio_tilts = pd.read_csv(self.input()['portfolio-tilts'].path)
+
+        # filter to benchmarks and combine
+        etf_tilts = etf_tilts.loc[etf_tilts.Ticker.isin(META['BENCHMARKS']),:]
+        tilts = pd.concat([etf_tilts, portfolio_tilts], axis=0)
+
+        # rename variables
+        tilts = tilts[['Ticker'] + list(META['FACTORS_NAMES'].keys())]
+        tilts.columns = ['Ticker'] + list(META['FACTORS_NAMES'].values())
+
+        # export
+        tilts.to_csv(self.output().path, index = False)
 
 
 class WeightsDonutPlot(RTask):
