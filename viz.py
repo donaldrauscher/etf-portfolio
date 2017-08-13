@@ -30,10 +30,9 @@ class RiskVsReturnScatter(RTask):
         }
 
 
-class CumulativeReturnPlot(RTask):
+class CumulativeReturnPlot(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/viz/cumulative_returns.R'
 
     def requires(self):
         return [AllETFReturns(dt=self.dt), CalcETFPortfolioSummary(dt=self.dt)]
@@ -46,6 +45,27 @@ class CumulativeReturnPlot(RTask):
 
     def output(self):
         return luigi.LocalTarget('data/%s/viz/viz2.csv' % (self.dt))
+
+    def run(self):
+        # bring in inputs
+        etf_returns = pd.read_csv(self.input()['etf-returns'].path)
+        portfolio_returns = pd.read_csv(self.input()['portfolio-returns'].path)
+
+        # filter to benchmarks
+        etf_returns = etf_returns.loc[etf_returns.Ticker.isin(META['BENCHMARKS']), ['Ticker', 'Month', 'Return']]
+
+        # cumulative returns and de-normalize
+        returns = pd.concat([etf_returns, portfolio_returns], axis=0)
+        returns.sort_values(by = ['Ticker', 'Month'], ascending = True, inplace = True)
+        returns['Cumulative_Return'] = returns.groupby('Ticker')['Return'].transform(lambda x: (1 + x/100).cumprod())
+        returns = returns.pivot(index = "Month", columns = "Ticker", values = "Cumulative_Return")
+
+        # format month
+        returns['Month'] = returns.index
+        returns['Month'] = returns.Month.apply(lambda x: '%s-%s-%s' % (str(x)[0:4], str(x)[4:6], '01'))
+
+        # export
+        returns.to_csv(self.output().path, index = False)
 
 
 class TiltsRadarPlot(luigi.Task):
