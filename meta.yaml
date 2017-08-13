@@ -72,7 +72,7 @@ REGRESSION:
 # factor names
 FACTORS_NAMES:
   Alpha: 'Alpha'
-  Mkt.RF: 'Beta'
+  Mkt-RF: 'Beta'
   SMB: 'Size'
   HML: 'Value'
   RMW: 'Profitability'
@@ -82,14 +82,8 @@ FACTORS_NAMES:
   NET_ISSUES: 'Share Issues'
   ACCRUAL: 'Accruals'
 
-# clustering variables
-CLUSTERING:
-  N_CLUSTER: 20
-  OUTLIER_SD: 3
-
 # optimization variables
 OPTIMIZATION:
-  USE_CLUSTERING: 0
   FACTOR_TILT_MIN:
     SMB: 0.5
     HML: 0.5

@@ -6,6 +6,7 @@ from base import RTask
 from steps.returns import CalcReturns
 from steps.tilts import CalcTilts
 from steps.covar import CalcCovar
+from steps.optimize import Optimize
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
@@ -331,32 +332,15 @@ class CreateETFCovarMatrix(CalcCovar):
         return luigi.LocalTarget('data/%s/etf_covar.csv' % (self.dt))
 
 
-# cluster ETFs into buckets
-class ClusterETF(RTask):
-
-    dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/cluster.R'
-
-    def requires(self):
-        return {'tilts':CalcETFTilts(dt=self.dt)}
-
-    def output(self):
-        return luigi.LocalTarget('data/%s/etf_cluster.csv' % (self.dt))
-
-
 # create an optimal portfolio with a given return
-class CreateETFPortfolio(RTask):
+class CreateETFPortfolio(Optimize):
 
     dt = luigi.DateParameter(default=datetime.date.today())
     target_return = luigi.IntParameter()
-    r_script = 'r/optimize.R'
-
-    @property
-    def extra_params(self):
-        return {'target-return':self.target_return}
+    meta = META
 
     def requires(self):
-        return {'tilts':ClusterETF(dt=self.dt), 'covar':CreateETFCovarMatrix(dt=self.dt)}
+        return {'tilts':CalcETFTilts(dt=self.dt), 'covar':CreateETFCovarMatrix(dt=self.dt)}
 
     def output(self):
         return luigi.LocalTarget('data/%s/etf_portfolio_%s.csv' % (self.dt, self.target_return))
