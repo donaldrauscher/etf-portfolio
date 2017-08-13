@@ -84,12 +84,6 @@ FACTORS_NAMES:
 
 # optimization variables
 OPTIMIZATION:
-  FACTOR_TILT_MIN:
-    SMB: 0.5
-    HML: 0.5
-    RMW: 0.5
-    CMA: 0.5
-    Mom: 0.5
   MIN_WEIGHT: 0.025
   MAX_WEIGHT: 0.5
   COEFF_OUTLIER_CUTOFF: 5
