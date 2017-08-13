@@ -3,9 +3,9 @@ from luigi.contrib import sqla
 from sqlalchemy import String, Float
 import pandas as pd
 from base import RTask
-from returns import CalcReturns
-from tilts import CalcTilts
-from covar import CalcCovar
+from steps.returns import CalcReturns
+from steps.tilts import CalcTilts
+from steps.covar import CalcCovar
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
