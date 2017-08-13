@@ -54,7 +54,7 @@ class CalcTilts(luigi.Task):
         returns3 = pd.DataFrame.from_dict(returns3)
 
         # calculate actuals
-        returns4 = returns2.sort_values(by = ['Ticker', 'Date'], ascending = True)
+        returns4 = returns2.sort_values(by = ['Ticker', 'Month'], ascending = True)
         returns4['Cumulative_Return'] = returns4.groupby('Ticker')['Return'].transform(lambda x: (1 + x/100).cumprod())
         returns4['Cumulative_Return_Max'] = returns4.groupby('Ticker')['Cumulative_Return'].cummax()
         returns4['Draw_Down'] = 100*(1 - returns4.Cumulative_Return / returns4.Cumulative_Return_Max)

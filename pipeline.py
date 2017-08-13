@@ -2,11 +2,12 @@ import luigi, datetime, yaml, subprocess, requests, os, logging, io, functools, 
 from luigi.contrib import sqla
 from sqlalchemy import String, Float
 import pandas as pd
-from base import RTask
+import numpy as np
 from steps.returns import CalcReturns
 from steps.tilts import CalcTilts
 from steps.covar import CalcCovar
 from steps.optimize import Optimize
+from steps.summary import CalcSummary
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
@@ -364,10 +365,9 @@ class CreateAllETFPortfolios(luigi.Task):
 
 
 # summary of actual and expected returns
-class CalcETFPortfolioSummary(RTask):
+class CalcETFPortfolioSummary(CalcSummary):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/summary.R'
 
     def requires(self):
         return {'etf-returns':AllETFReturns(dt=self.dt), 'portfolios':CreateAllETFPortfolios(dt=self.dt)}
