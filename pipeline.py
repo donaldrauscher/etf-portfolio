@@ -5,6 +5,7 @@ import pandas as pd
 from base import RTask
 from returns import CalcReturns
 from tilts import CalcTilts
+from covar import CalcCovar
 
 # pull in meta data
 with open('meta.yaml', 'rb') as f:
@@ -314,10 +315,10 @@ class CalcETFTilts(CalcTilts):
 
 
 # create the covariance matrix
-class CreateETFCovarMatrix(RTask):
+class CreateETFCovarMatrix(CalcCovar):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/covar.R'
+    meta = META['REGRESSION']
 
     def requires(self):
         return {
