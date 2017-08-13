@@ -78,10 +78,9 @@ class TiltsRadarPlot(luigi.Task):
         tilts.to_csv(self.output().path, index = False)
 
 
-class WeightsDonutPlot(RTask):
+class WeightsDonutPlot(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    r_script = 'r/viz/weights.R'
 
     def requires(self):
         return {
@@ -91,6 +90,27 @@ class WeightsDonutPlot(RTask):
 
     def output(self):
         return luigi.LocalTarget('data/%s/viz/viz3.csv' % (self.dt))
+
+    def run(self):
+        # bring in inputs
+        etf_db = pd.read_csv(self.input()['etf-db'].path)
+        portfolios = pd.read_csv(self.input()['portfolios'].path)
+
+        # de-normalize
+        portfolios = portfolios.pivot(index = "Ticker", columns = "Portfolio", values = "Weight")
+        portfolios.fillna(0, inplace = True)
+        portfolios['Total'] = portfolios.apply(np.sum, axis=1)
+        portfolios['Ticker'] = portfolios.index
+        portfolios.sort_values(by = ['Total'], ascending = False, inplace = True)
+
+        # pull in names
+        etf_db = etf_db[['TICKER', 'FUND']]
+        portfolios = portfolios.merge(etf_db, how = "inner", left_on = ["Ticker"], right_on = ["TICKER"])
+        portfolios['Ticker'] = portfolios.apply(lambda x: '%s (%s)' % (x['FUND'], x['Ticker']), axis=1)
+        portfolios.drop(['Total', 'TICKER', 'FUND'], inplace = True, axis=1)
+
+        # export
+        portfolios.to_csv(self.output().path, index = False)
 
 
 # make all visualizations
