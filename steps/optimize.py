@@ -29,8 +29,8 @@ class Optimize(luigi.Task):
         n = returns.size
         P = matrix(2*covar)
         q = matrix(np.zeros(n))
-        G = matrix(np.vstack((np.diag(-np.ones(n)), np.diag(np.ones(n)), [-returns], np.transpose(tilts))))
-        h = matrix(np.concatenate((np.repeat(-min_weight, n), np.repeat(max_weight, n), [-self.target_return], min_tilt)))
+        G = matrix(np.vstack((np.diag(-np.ones(n)), np.diag(np.ones(n)), [-returns], -np.transpose(tilts))))
+        h = matrix(np.concatenate((np.repeat(-min_weight, n), np.repeat(max_weight, n), [-self.target_return], -min_tilt)))
         A = matrix(np.ones(returns.size).reshape(1,-1))
         b = matrix(1.0)
         sol = solvers.qp(P, q, G, h, A, b)
