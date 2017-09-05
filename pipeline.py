@@ -351,7 +351,7 @@ class CreateETFPortfolio(Optimize):
 class CreateAllETFPortfolios(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    capital = luigi.IntParameter(default=10000)
+    capital = luigi.FloatParameter(default=10000.0)
 
     def requires(self):
         return [CreateETFPortfolio(dt=self.dt, target_return=target_return) for target_return in META['OPTIMIZATION']['TARGET_RETURNS']]
@@ -378,7 +378,7 @@ class CreateAllETFPortfolios(luigi.Task):
 class CalcETFPortfolioSummary(CalcSummary):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    capital = luigi.IntParameter(default=10000)
+    capital = luigi.FloatParameter(default=10000.0)
 
     def requires(self):
         return {'etf-returns':AllETFReturns(dt=self.dt), 'portfolios':CreateAllETFPortfolios(dt=self.dt, capital=self.capital)}
@@ -394,7 +394,7 @@ class CalcETFPortfolioSummary(CalcSummary):
 class CalcETFPortfolioTilts(CalcTilts):
 
     dt = luigi.DateParameter(default=datetime.date.today())
-    capital = luigi.IntParameter(default=10000)
+    capital = luigi.FloatParameter(default=10000.0)
     meta = META['REGRESSION']
 
     def requires(self):
