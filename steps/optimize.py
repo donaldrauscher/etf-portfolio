@@ -22,15 +22,15 @@ class Optimize(luigi.Task):
     def meta(self):
         pass
 
-    def optimize(self, returns, covar, min_weight, max_weight):
+    def optimize(self, returns, covar, tilts, min_tilt, min_weight, max_weight):
         # min (1/2) x^TPx + q^T x
         # Gx <= h
         # Ax = b
         n = returns.size
         P = matrix(2*covar)
         q = matrix(np.zeros(n))
-        G = matrix(np.vstack((np.diag(-np.ones(n)), np.diag(np.ones(n)), [-returns])))
-        h = matrix(np.concatenate((np.repeat(-min_weight, n), np.repeat(max_weight, n), [-self.target_return])))
+        G = matrix(np.vstack((np.diag(-np.ones(n)), np.diag(np.ones(n)), [-returns], np.transpose(tilts))))
+        h = matrix(np.concatenate((np.repeat(-min_weight, n), np.repeat(max_weight, n), [-self.target_return], min_tilt)))
         A = matrix(np.ones(returns.size).reshape(1,-1))
         b = matrix(1.0)
         sol = solvers.qp(P, q, G, h, A, b)
@@ -42,6 +42,7 @@ class Optimize(luigi.Task):
         covar = pd.read_csv(self.input()['covar'].path)
         m = self.meta['OPTIMIZATION']
         min_weight, max_weight, outlier_cutoff = m['MIN_WEIGHT'], m['MAX_WEIGHT'], m['COEFF_OUTLIER_CUTOFF']
+        min_factors_names, min_factors_weights = list(m['FACTOR_TILT_MIN'].keys()), list(m['FACTOR_TILT_MIN'].values())
 
         # exclude outliers
         factor_names = list(self.meta['FACTORS_NAMES'].keys())
@@ -51,13 +52,23 @@ class Optimize(luigi.Task):
         covar2 = covar.loc[~is_outlier, covar.columns[~is_outlier]]
 
         # first optimization
-        portfolio1_obj, portfolio1_weights = self.optimize(tilts2.Expected_Return.as_matrix(), covar2.as_matrix(), 0, max_weight)
+        portfolio1_obj, portfolio1_weights = self.optimize(\
+            tilts2.Expected_Return.as_matrix(),\
+            covar2.as_matrix(),\
+            tilts2[min_factors_names].as_matrix(),\
+            np.array(min_factors_weights),\
+            0, max_weight)
 
         # second optimization
         phase2_include = (portfolio1_weights >= min_weight)
         tilts3 = tilts2.loc[phase2_include,:]
         covar3 = covar2.loc[phase2_include, covar2.columns[phase2_include]]
-        portfolio2_obj, portfolio2_weights = self.optimize(tilts3.Expected_Return.as_matrix(), covar3.as_matrix(), min_weight, max_weight)
+        portfolio2_obj, portfolio2_weights = self.optimize(\
+            tilts3.Expected_Return.as_matrix(),\
+            covar3.as_matrix(),
+            tilts3[min_factors_names].as_matrix(),\
+            np.array(min_factors_weights),\
+            min_weight, max_weight)
 
         # pull in expected return and sd/var
         tilts4 = tilts3.copy()
