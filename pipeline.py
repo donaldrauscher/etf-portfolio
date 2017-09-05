@@ -351,6 +351,7 @@ class CreateETFPortfolio(Optimize):
 class CreateAllETFPortfolios(luigi.Task):
 
     dt = luigi.DateParameter(default=datetime.date.today())
+    capital = luigi.IntParameter(default=10000)
 
     def requires(self):
         return [CreateETFPortfolio(dt=self.dt, target_return=target_return) for target_return in META['OPTIMIZATION']['TARGET_RETURNS']]
@@ -358,9 +359,18 @@ class CreateAllETFPortfolios(luigi.Task):
     def output(self):
         return luigi.LocalTarget('data/%s/etf_portfolios.csv' % (self.dt))
 
+    def get_quote(self, ticker):
+        url = "https://api.robinhood.com/quotes/{}/".format(ticker)
+        quote = json.loads(requests.get(url).text)
+        return float(quote['ask_price'])
+
     def run(self):
         portfolios = [pd.read_csv(f.path) for f in self.input()]
         portfolios = pd.concat(portfolios, axis=0)
+
+        portfolios['Price'] = portfolios.Ticker.apply(self.get_quote)
+        portfolios['Shares'] = portfolios.apply(lambda x: round(self.capital * x['Weight'] / x['Price']), axis=1)
+
         portfolios.to_csv(self.output().path, index=False)
 
 
@@ -368,9 +378,10 @@ class CreateAllETFPortfolios(luigi.Task):
 class CalcETFPortfolioSummary(CalcSummary):
 
     dt = luigi.DateParameter(default=datetime.date.today())
+    capital = luigi.IntParameter(default=10000)
 
     def requires(self):
-        return {'etf-returns':AllETFReturns(dt=self.dt), 'portfolios':CreateAllETFPortfolios(dt=self.dt)}
+        return {'etf-returns':AllETFReturns(dt=self.dt), 'portfolios':CreateAllETFPortfolios(dt=self.dt, capital=self.capital)}
 
     def output(self):
         return {
@@ -383,10 +394,11 @@ class CalcETFPortfolioSummary(CalcSummary):
 class CalcETFPortfolioTilts(CalcTilts):
 
     dt = luigi.DateParameter(default=datetime.date.today())
+    capital = luigi.IntParameter(default=10000)
     meta = META['REGRESSION']
 
     def requires(self):
-        return [CalcETFPortfolioSummary(dt=self.dt), GetAllFactorData(dt=self.dt)]
+        return [CalcETFPortfolioSummary(dt=self.dt, capital=self.capital), GetAllFactorData(dt=self.dt)]
 
     # need to overwrite to specify which output from CalcETFPortfolioSummary to use
     def input(self):
